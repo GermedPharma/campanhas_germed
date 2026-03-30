@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Missão Germed – Tabelão de Resultados</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --dark-green: #1a4731;
+            --mid-green: #2d6a4f;
+            --light-green: #52b788;
+            --header-green: #1b4332;
+            --kpi-green: #40916c;
+            --border-light: #b7e4c7;
+            --bg: #f0faf4;
+            --shadow: 0 4px 20px rgba(27,67,50,0.15);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: #1a1a2e;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .page-header {
+            background: linear-gradient(135deg, #1a4731 0%, #2d6a4f 100%);
+            color: white;
+            border-radius: 16px;
+            padding: 22px 28px;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--shadow);
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .page-header h1 { font-size: 1.25rem; font-weight: 700; }
+        .page-header p { font-size: 0.83rem; opacity: 0.72; margin-top: 4px; }
+        .header-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .upload-label {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(255,255,255,0.18); border: 1.5px solid rgba(255,255,255,0.4);
+            color: white; padding: 8px 18px; border-radius: 10px;
+            font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: background 0.2s;
+            white-space: nowrap;
+        }
+        .upload-label:hover { background: rgba(255,255,255,0.28); }
+        #excelFile { display: none; }
+        .file-badge {
+            background: #d8f3dc; color: #1b4332; padding: 5px 12px;
+            border-radius: 8px; font-size: 0.8rem; font-weight: 600;
+            display: none; align-items: center; gap: 5px; max-width: 240px;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .filter-bar {
+            display: none; gap: 10px; align-items: center; flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .filter-bar label { font-size: 0.83rem; font-weight: 600; color: var(--mid-green); }
+        .filter-bar select, .filter-bar input {
+            padding: 6px 11px; border-radius: 8px;
+            border: 1.5px solid var(--border-light);
+            font-family: 'Inter', sans-serif; font-size: 0.83rem;
+            background: white; color: #1a1a2e;
+        }
+        .filter-bar select:focus, .filter-bar input:focus {
+            outline: none; border-color: var(--kpi-green);
+        }
+        #main-content { display: none; }
+        #table-section {
+            background: white; border-radius: 16px;
+            box-shadow: var(--shadow); overflow: hidden;
+        }
+        .table-title-bar {
+            background: linear-gradient(90deg, #1b4332 0%, #40916c 100%);
+            color: white; padding: 12px 20px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .table-title-bar span { font-size: 0.95rem; font-weight: 700; }
+        .row-badge {
+            background: rgba(255,255,255,0.2); padding: 3px 10px;
+            border-radius: 20px; font-size: 0.77rem; font-weight: 600;
+        }
+        .table-scroll { overflow-x: auto; }
+
+        /* ===== TABLE ===== */
+        table {
+            border-collapse: separate; border-spacing: 0;
+            width: 100%; min-width: 1100px; font-size: 0.77rem;
+        }
+        thead tr.tr-top th {
+            color: white; font-size: 0.77rem; font-weight: 700;
+            text-align: center; padding: 10px 8px;
+            text-transform: uppercase; letter-spacing: 0.3px;
+            border-right: 1px solid rgba(255,255,255,0.15);
+            white-space: nowrap;
+        }
+        .th-id-top { background: #0a1f14 !important; text-align: left !important; padding-left: 14px !important; }
+        .th-obt-top { background: #2d6a4f; }
+        .th-bon-top { background: #1b4332; }
+
+        thead tr.tr-sub th {
+            padding: 8px 7px; font-size: 0.71rem; font-weight: 700;
+            text-align: center; text-transform: uppercase;
+            letter-spacing: 0.2px; white-space: nowrap;
+            border-right: 1px solid rgba(255,255,255,0.2);
+            border-bottom: 2px solid rgba(255,255,255,0.25);
+        }
+        .th-id-sub { background: #0a1f14; color: #d8f3dc; text-align: left; }
+        .th-obt-sub { background: #2d6a4f; color: #d8f3dc; }
+        .th-bon-sub { background: #1b4332; color: #b7e4c7; }
+
+        /* KPIs ≥100% count column styling */
+        .th-kpi100 { background: #1a3d28; color: #a8e6c0; }
+        .td-kpi100 { font-weight: 700; }
+        .td-kpi100-high { color: #1b7a3e; font-weight: 700; }
+        .td-kpi100-mid  { color: #2d6a4f; font-weight: 700; }
+        .td-kpi100-low  { color: #6c757d; }
+
+        tbody tr { transition: background 0.1s; }
+        tbody tr:hover td { background: #e8f5e9 !important; color: #1a1a2e !important; }
+
+        td {
+            padding: 7px 8px; border-bottom: 1px solid #e8f5e9;
+            border-right: 1px solid #e8f5e9; text-align: center; white-space: nowrap;
+        }
+        .td-nome {
+            text-align: left; font-weight: 600; color: #1a1a2e;
+            background: #f9fffe; border-right: 2px solid #b7e4c7;
+            min-width: 210px; max-width: 270px;
+            overflow: hidden; text-overflow: ellipsis;
+            position: sticky; left: 0; z-index: 2; padding-left: 14px;
+        }
+        .td-setor { font-family: monospace; font-size: 0.71rem; color: #6c757d; background: #f9fffe; }
+        .td-badge { font-weight: 600; font-size: 0.71rem; }
+
+        /* Level rows */
+        tr.lv-nacional td, tr.lv-gn td { background: #e8f5e9; font-weight: 700; font-size: 0.8rem; color: #1b4332; }
+        tr.lv-nacional .td-nome, tr.lv-gn .td-nome { background: #c8e6c9; }
+        tr.lv-gr td { background: #f1faf3; font-weight: 700; color: #2d6a4f; }
+        tr.lv-gr .td-nome { background: #dff0e5; }
+        tr.lv-gd td { background: #f8fffa; font-weight: 600; color: #3d7a5a; }
+        tr.lv-gd .td-nome { background: #f0faef; }
+        tr.lv-rep td { background: white; color: #1a1a2e; }
+
+        /* KPI colors */
+        .pct-green { color: #1b7a3e; font-weight: 700; }
+        .pct-yellow { color: #b45309; font-weight: 700; }
+        .pct-red { color: #c0392b; font-weight: 700; }
+        .pct-na { color: #adb5bd; font-style: italic; }
+
+        /* Separators */
+        .sep-r { border-right: 2.5px solid #1b4332 !important; }
+        .sep-r-th { border-right: 2.5px solid rgba(255,255,255,0.5) !important; }
+
+        /* No data */
+        .no-data { text-align: center; padding: 60px 20px; color: var(--mid-green); }
+        .no-data .ico { font-size: 3rem; margin-bottom: 10px; }
+        .no-data h3 { font-size: 1.05rem; font-weight: 600; }
+        .no-data p { font-size: 0.85rem; opacity: 0.7; margin-top: 5px; }
+
+        /* Legend */
+        .legend {
+            display: flex; gap: 16px; padding: 10px 16px;
+            background: #f8fffe; border-top: 1px solid var(--border-light);
+            flex-wrap: wrap; font-size: 0.74rem; color: #2d3436;
+        }
+        .leg-item { display: flex; align-items: center; gap: 5px; }
+        .leg-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .page-header { padding: 14px; }
+            .page-header h1 { font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+<header class="page-header">
+    <div>
+        <h1>🏆 Missão Germed – Resultados por Colaborador</h1>
+        <p id="headerSubtitle">KPIs de Porcentagem Obtida e Bônus · Carregando dados...</p>
+    </div>
+    <div class="header-right">
+        <span class="file-badge" id="fileBadge" style="display:inline-flex;">⏳ <span id="fileNameSpan">Carregando...</span></span>
+        <button class="upload-label" id="btnReload" onclick="loadData()" style="cursor:pointer;border:none;">🔄 Atualizar</button>
+    </div>
+</header>
+
+<div class="filter-bar" id="filterBar">
+    <label>📅 Data:</label>
+    <select id="dateFilter"></select>
+    <label>🔍 Buscar:</label>
+    <input type="text" id="searchInput" placeholder="Nome ou setor...">
+    <label>📊 Nível:</label>
+    <select id="levelFilter">
+        <option value="">Todos</option>
+        <option value="gn">GN (Ger. Nacional)</option>
+        <option value="gr">GR (Ger. Regional)</option>
+        <option value="gd">GD (Ger. Distrital)</option>
+    </select>
+    <label>↕️ Ordenar:</label>
+    <select id="sortMode">
+        <option value="hierarchy">Sem ordem (hierarquia)</option>
+        <option value="desc">Maior → Menor</option>
+        <option value="asc">Menor → Maior</option>
+    </select>
+</div>
+
+<div id="main-content">
+    <div id="table-section">
+        <div class="table-title-bar">
+            <span>📋 Tabelão de Missão</span>
+            <span class="row-badge" id="rowBadge">0 colaboradores</span>
+        </div>
+        <div class="table-scroll">
+            <div id="tableContainer"></div>
+        </div>
+        <div class="legend">
+            <div class="leg-item"><div class="leg-dot" style="background:#c8e6c9"></div> Nacional / GR</div>
+            <div class="leg-item"><div class="leg-dot" style="background:#f0faef"></div> GD</div>
+            <div class="leg-item"><div class="leg-dot" style="background:#fff;border:1px solid #ccc"></div> Vendedor</div>
+            <div class="leg-item"><span class="pct-green">■</span> ≥ 100%</div>
+            <div class="leg-item"><span class="pct-yellow">■</span> 70–99%</div>
+            <div class="leg-item"><span class="pct-red">■</span> &lt; 70%</div>
+            <div class="leg-item"><span style="color:#1b4332;font-weight:700">KAM</span> = KAM Nacional (Grandes Contas)</div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ─── State ───────────────────────────────────────────
+let rawSheet1 = [];
+let rawSheet2 = [];
+const GN_NAMES = new Set();
+const GR_NAMES = new Set();
+const GD_NAMES = new Set();
+
+// ─── URLs dos JSONs no SharePoint ─────────────────────
+  // Substitua as URLs abaixo pelas URLs reais dos seus arquivos JSON no SharePoint
+  const URL_FATURAMENTO = 'data_faturamento.json';
+  const URL_RFAT        = 'data_rfat.json';
+
+// ─── Carregamento automático ao abrir ─────────────────
+document.addEventListener('DOMContentLoaded', loadData);
+document.getElementById('dateFilter').addEventListener('change', renderTable);
+document.getElementById('searchInput').addEventListener('input', renderTable);
+document.getElementById('levelFilter').addEventListener('change', renderTable);
+document.getElementById('sortMode').addEventListener('change', renderTable);
+
+
+function unwrapSharePointJson(data) {
+  // 1) Já é array
+  if (Array.isArray(data)) return data;
+
+  // 2) OData v4 minimal: { value: [...] }
+  if (data && Array.isArray(data.value)) return data.value;
+
+  // 3) OData antigo: { d: { results: [...] } } ou { d: [...] }
+  if (data && data.d) {
+    if (Array.isArray(data.d.results)) return data.d.results;
+    if (Array.isArray(data.d)) return data.d;
+    if (data.d && Array.isArray(data.d.value)) return data.d.value;
+  }
+
+  // 4) JSON veio como string (ex: "[{...}]")
+  if (typeof data === 'string') {
+    const s = data.trim();
+
+    // Se a string já parece um JSON de array/objeto, faz parse
+    if ((s.startsWith('[') && s.endsWith(']')) || (s.startsWith('{') && s.endsWith('}'))) {
+      const parsed = JSON.parse(s);
+      return unwrapSharePointJson(parsed);
+    }
+
+    // Às vezes vem como string JSON escapada com aspas externas
+    // ex: "\"[{...}]\"" -> primeiro parse tira as aspas, segundo parse vira array
+    if ((s.startsWith('"[') && s.endsWith(']"')) || (s.startsWith('"{') && s.endsWith('}"'))) {
+      const once = JSON.parse(s);
+      return unwrapSharePointJson(once);
+    }
+  }
+
+  // 5) Não reconhecido -> devolve vazio pra não quebrar
+  return [];
+}
+
+async function fetchJsonSharePoint(url, timeoutMs = 20000) {
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const r = await fetch(url + (url.includes('?') ? '&' : '?') + 'v=' + Date.now(), {
+      cache: 'no-store',
+      credentials: 'same-origin',
+      headers: { 'Accept': 'application/json, text/plain, */*' },
+      signal: controller.signal
+    });
+
+    if (!r.ok) throw new Error(`HTTP ${r.status} ${r.statusText}`);
+
+    // Lê como texto primeiro (mais robusto)
+    let text = (await r.text()).replace(/^\uFEFF/, '').trim();
+
+    // Se o SharePoint devolver HTML (login/viewer), detecta e falha com erro claro
+    const head = text.slice(0, 80).toLowerCase();
+    if (head.startsWith('<!doctype html') || head.startsWith('<html')) {
+      throw new Error('SharePoint devolveu HTML (viewer/login) em vez de JSON. Verifique permissões e link do arquivo.');
+    }
+
+    // Primeiro tenta JSON.parse direto
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      // Se por algum motivo o conteúdo é "string com escapes", tenta "desempacotar"
+      // exemplo raro: o arquivo começa com /\\[ ... (escape indevido)
+      // remove tudo antes do primeiro [ ou { e tenta novamente
+      const iArr = text.indexOf('[');
+      const iObj = text.indexOf('{');
+      const i = (iArr === -1) ? iObj : (iObj === -1 ? iArr : Math.min(iArr, iObj));
+      if (i > 0) text = text.slice(i);
+      data = JSON.parse(text);
+    }
+
+    // Desembrulha formatos OData / string / etc
+    return unwrapSharePointJson(data);
+  } catch (e) {
+    if (e.name === 'AbortError') {
+      throw new Error(`Timeout ao baixar ${url} (>${timeoutMs/1000}s).`);
+    }
+    throw new Error(`Erro ao baixar ${url}: ${e.message}`);
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+
+
+async function loadData() {
+  const badge = document.getElementById('fileBadge');
+  const span  = document.getElementById('fileNameSpan');
+  const sub   = document.getElementById('headerSubtitle');
+  badge.style.display = 'inline-flex';
+  span.textContent = 'Carregando...';
+  sub.textContent  = 'KPIs de Porcentagem Obtida e Bônus · Carregando dados do SharePoint...';
+
+  try {
+        
+    const [j1, j2] = await Promise.all([
+      fetchJsonSharePoint(URL_FATURAMENTO),
+      fetchJsonSharePoint(URL_RFAT)
+    ]);
+
+    rawSheet1 = j1;
+    rawSheet2 = j2;
+
+
+    // Normaliza campos com _x002e_ (ponto codificado pelo SharePoint) para o formato original
+    rawSheet1 = rawSheet1.map(normalizeRow);
+    rawSheet2 = rawSheet2.map(normalizeRow);
+
+    const now = new Date().toLocaleString('pt-BR');
+    span.textContent = `Atualizado em ${now}`;
+    badge.style.background = '#d8f3dc';
+    badge.style.color = '#1b4332';
+    sub.textContent = 'KPIs de Porcentagem Obtida e Bônus · Dados carregados do SharePoint';
+
+    init();
+  } catch (err) {
+    span.textContent = 'Erro ao carregar dados';
+    badge.style.background = '#fde8e8';
+    badge.style.color = '#c0392b';
+    sub.textContent = 'Falha ao carregar dados. Verifique as URLs dos arquivos JSON.';
+    console.error(err);
+    alert('Erro ao carregar dados:\n' + err.message + '\n\nVerifique as URLs dos arquivos JSON no código.');
+  }
+}
+
+// Converte chaves com _x002e_ (.) e _x0020_ (espaço) geradas pelo Power Automate
+// de volta ao formato esperado pelo código original
+function normalizeRow(row) {
+  const out = {};
+  for (const [k, v] of Object.entries(row)) {
+    // Remove campos internos do SharePoint
+    if (k === '@odata.etag' || k === 'ItemInternalId') continue;
+    // Decodifica _x002e_ → . e _x0020_ → espaço
+    const newKey = k
+      .replace(/_x002e_/g, '.')
+      .replace(/_x0020_/g, ' ');
+    out[newKey] = v;
+  }
+  // Converte DATA/Data de número serial Excel para objeto Date
+  // (Power Automate exporta como número serial, ex: 46082)
+  for (const dateField of ['DATA', 'Data']) {
+    if (out[dateField] !== undefined && out[dateField] !== '' && !isNaN(+out[dateField])) {
+      const serial = +out[dateField];
+      // Apenas converte se parece número serial Excel (> 40000 = após ~2009)
+      if (serial > 40000 && serial < 60000) {
+        // Excel serial → JS Date (Excel epoch = 1/1/1900, JS epoch = 1/1/1970)
+        const jsDate = new Date((serial - 1) * 86400000 + new Date(1900, 0, 1).getTime());
+        out[dateField] = jsDate;
+      }
+    }
+  }
+  return out;
+}
+
+// ─── Helpers ─────────────────────────────────────────
+function norm(s) {
+  if (s == null) return '';
+  return String(s).trim().replace(/\.0$/, '');
+}
+
+function dateKey(d) {
+  if (!d) return '';
+  if (d instanceof Date) {
+    const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0');
+    return `${y}-${m}`;
+  }
+  const str = String(d);
+  const match = str.match(/(\d{4})-(\d{2})/);
+  return match ? `${match[1]}-${match[2]}` : str;
+}
+
+function fmtDateLabel(k) {
+  const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const m = k.match(/(\d{4})-(\d{2})/);
+  if (!m) return k;
+  return `${months[parseInt(m[2]) - 1]}/${m[1]}`;
+}
+
+function pct(val) {
+  if (val == null || val === '' || isNaN(+val)) return null;
+  const n = +val;
+  return isFinite(n) ? n : null;
+}
+
+function normPct(val) {
+  // Normalize: values 0..2 are treated as 0..200%
+  if (val === null) return null;
+  return val < 2 ? val * 100 : val;
+}
+
+function colorClass(p) {
+  if (p === null) return 'pct-na';
+  if (p >= 100) return 'pct-green';
+  if (p >= 70) return 'pct-yellow';
+  return 'pct-red';
+}
+
+function fmtObtida(val) {
+  const p = normPct(val);
+  if (p === null) return '<span class="pct-na">–</span>';
+  return `<span class="${colorClass(p)}">${p.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})}%</span>`;
+}
+
+function fmtBonus(val) {
+  const p = normPct(val);
+  if (p === null) return '<span class="pct-na">–</span>';
+  // Mantive sua lógica original
+  let b;
+  if (p >= 120) b = 50;
+  else if (p > 100 && p < 120) b = 20;
+  else b = 0;
+  const cls = b >= 20 ? 'pct-green' : b >= 50 ? 'pct-dark-green' : 'pct-na';
+  return `<span class="${cls}">${b.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})}%</span>`;
+}
+
+function getLevel(r) {
+  const nome = norm(r['NOME']);
+  const isGn = GN_NAMES.has(nome);
+  const isGr = GR_NAMES.has(nome);
+  const isGd = GD_NAMES.has(nome);
+  if (isGn) return 'gn';
+  if (isGr) return 'gr';
+  if (isGd) return 'gd';
+  return 'rep';
+}
+
+function isKam(s) {
+  // GR code 51 = Grandes Contas / KAM Nacional
+  return s && s.length >= 4 && s.substring(2, 4) === '51';
+}
+
+/**
+ * Converte número em pt-BR (1.234,56) / en-US (1,234.56) / moeda / etc
+ */
+function toNum(v) {
+  if (v == null || v === '') return null;
+  if (typeof v === 'number') return isFinite(v) ? v : null;
+
+  let s = String(v).trim();
+  s = s.replace(/[R$\s]/g, '');
+
+  // Se tem "." e ",": assume "." milhar e "," decimal
+  if (s.includes('.') && s.includes(',')) {
+    s = s.replace(/\./g, '').replace(',', '.');
+  } else if (s.includes(',')) {
+    // só vírgula: assume decimal
+    s = s.replace(',', '.');
+  }
+
+  s = s.replace(/[^0-9.-]/g, '');
+  const n = parseFloat(s);
+  return isFinite(n) ? n : null;
+}
+
+function safePct(sumReal, sumMeta) {
+  if (sumReal == null || sumMeta == null || sumMeta === 0) return null;
+  return (sumReal / sumMeta) * 100;
+}
+
+// ─── Init data ────────────────────────────────────────
+function init() {
+  const dates = new Set();
+  GN_NAMES.clear(); GR_NAMES.clear(); GD_NAMES.clear();
+
+  rawSheet1.forEach(r => {
+    const k = dateKey(r['DATA']);
+    if (k) dates.add(k);
+    const gn = norm(r['NOME GN']);
+    const gr = norm(r['NOME GR']);
+    const gd = norm(r['NOME GD']);
+    if (gn) GN_NAMES.add(gn);
+    if (gr) GR_NAMES.add(gr);
+    if (gd) GD_NAMES.add(gd);
+  });
+
+  rawSheet2.forEach(r => {
+    const k = dateKey(r['Data']);
+    if (k) dates.add(k);
+    const gn = norm(r['NOME GN']);
+    const gr = norm(r['NOME GR']);
+    const gd = norm(r['NOME GD']);
+    if (gn) GN_NAMES.add(gn);
+    if (gr) GR_NAMES.add(gr);
+    if (gd) GD_NAMES.add(gd);
+  });
+
+  const sorted = [...dates].sort().reverse();
+  const sel = document.getElementById('dateFilter');
+  sel.innerHTML = sorted.map(d => `<option value="${d}">${fmtDateLabel(d)}</option>`).join('');
+
+  document.getElementById('filterBar').style.display = 'flex';
+  document.getElementById('main-content').style.display = 'block';
+  renderTable();
+}
+
+// ─── Build rows ───────────────────────────────────────
+function buildRows(selDate) {
+  const d1 = rawSheet1.filter(r => dateKey(r['DATA']) === selDate);
+  const d2 = rawSheet2.filter(r => dateKey(r['Data']) === selDate);
+
+  // Merge por NOME (para termos acesso a colunas dos dois sheets)
+  const byNome = {};
+  d1.forEach(r => {
+    const nome = norm(r['NOME']);
+    if (!nome) return;
+    byNome[nome] = byNome[nome] || { nome };
+    byNome[nome].r1 = r;
+  });
+  d2.forEach(r => {
+    const nome = norm(r['NOME']);
+    if (!nome) return;
+    byNome[nome] = byNome[nome] || { nome };
+    byNome[nome].r2 = r;
+  });
+
+  const merged = Object.values(byNome);
+
+  // Pré-computa hierarquia + números base (para calcular % por soma)
+  merged.forEach(o => {
+    const base = o.r1 || o.r2 || {};
+    o.level = getLevel(base);
+
+    o.nac = norm((o.r1 && o.r1['NOME GN']) || (o.r2 && o.r2['NOME GN']) || '');
+    o.gr  = norm((o.r1 && o.r1['NOME GR']) || (o.r2 && o.r2['NOME GR']) || '');
+    o.gd  = norm((o.r1 && o.r1['NOME GD']) || (o.r2 && o.r2['NOME GD']) || '');
+
+    const src = o.r2 || o.r1 || {};
+
+    // Demanda Sem Combate
+    o.demSComb_real = toNum(src['Dem. S. Comb.'] ?? src['Dem. S. Comb'] ?? src['Dem S Comb']);
+    o.demSComb_meta = toNum(src['Meta_Dem_S_Combate'] ?? src['META_DEM_S_COMBATE'] ?? src['Meta Dem S Combate']);
+
+    // OL Sem Combate
+    o.olSComb_real = toNum(src['OL S Comb.'] ?? src['OL S Comb'] ?? src['OL S Combate']);
+    o.olSComb_meta = toNum(src['($) META_OL_S_COMBATE_GERMED'] ?? src['META_OL_S_COMBATE_GERMED'] ?? src['Meta OL S Combate']);
+
+    // OL Prioritários
+    o.olPri_real = toNum(src['OL Priori.'] ?? src['OL Priori'] ?? src['OL Priori. ']);
+    o.olPri_meta = toNum(src['Meta_OL_Prioritarios'] ?? src['META_OL_PRIORITARIOS'] ?? src['Meta OL Prioritarios']);
+
+    // OL Lançamentos
+    o.olLanc_real = toNum(src['OL Lanc.'] ?? src['OL Lanc'] ?? src['OL Lancamento']);
+    o.olLanc_meta = toNum(src['Meta_OL_Lancamentos'] ?? src['META_OL_LANCAMENTOS'] ?? src['Meta OL Lancamentos']);
+  });
+
+  // Agrega somente representantes (rep) para evitar dupla contagem
+  function rollupFor(managerName, level) {
+    const sums = {
+      dem_real: 0, dem_meta: 0,
+      olS_real: 0, olS_meta: 0,
+      olP_real: 0, olP_meta: 0,
+      olL_real: 0, olL_meta: 0
+    };
+    let anyDem = false, anyOlS = false, anyOlP = false, anyOlL = false;
+
+    merged.forEach(o => {
+      if (o.nome === managerName) return;
+      if (o.level !== 'rep') return;
+
+      const parent =
+        level === 'gn' ? o.nac :
+        level === 'gr' ? o.gr  :
+        o.gd;
+
+      if (parent !== managerName) return;
+
+      if (o.demSComb_real != null && o.demSComb_meta != null) {
+        sums.dem_real += o.demSComb_real;
+        sums.dem_meta += o.demSComb_meta;
+        anyDem = true;
+      }
+      if (o.olSComb_real != null && o.olSComb_meta != null) {
+        sums.olS_real += o.olSComb_real;
+        sums.olS_meta += o.olSComb_meta;
+        anyOlS = true;
+      }
+      if (o.olPri_real != null && o.olPri_meta != null) {
+        sums.olP_real += o.olPri_real;
+        sums.olP_meta += o.olPri_meta;
+        anyOlP = true;
+      }
+      if (o.olLanc_real != null && o.olLanc_meta != null) {
+        sums.olL_real += o.olLanc_real;
+        sums.olL_meta += o.olLanc_meta;
+        anyOlL = true;
+      }
+    });
+
+    return {
+      demSComb: anyDem ? safePct(sums.dem_real, sums.dem_meta) : null,
+      olSComb:  anyOlS ? safePct(sums.olS_real, sums.olS_meta) : null,
+      olPriori: anyOlP ? safePct(sums.olP_real, sums.olP_meta) : null,
+      olLanc:   anyOlL ? safePct(sums.olL_real, sums.olL_meta) : null
+    };
+  }
+
+  const rows = [];
+
+  merged.forEach(o => {
+    const nome = o.nome;
+    const r  = o.r1 || {};
+    const r2 = o.r2 || {};
+
+    // Mantive sua regra de KAM
+    const kam = nome === 'LEANDRO DA ROCHA CARDOSO VALLEJO' || nome === 'LIS FRATUCI DE SOUZA';
+
+    // KPIs "como vinham" (percentuais prontos no Excel)
+    const kpis = kam ? {
+      fatBrasil: pct(r['% Fat.']),
+      demSComb: pct(r2['% Cob. S. Comb.']),
+      demPriori: pct(r['% Cob. Priori.']),
+      demLanc: pct(r['% Cob. Lanc.']),
+      olSComb: null,
+      olLanc: null,
+      olPriori: null
+    } : {
+      fatBrasil: pct(r['% Fat.']),
+      demSComb: pct(r2['% Cob. S. Comb.']),
+      olSComb: pct(r2['% OL S Comb.']),
+      olLanc: pct(r2['% OL Lanc.']),
+      olPriori: pct(r2['% OL Priori.']),
+      demPriori: null,
+      demLanc: null
+    };
+
+    // ✅ CORREÇÃO: se for GN/GR/GD e vier vazio, calcula por soma dos reps
+    if (o.level !== 'rep') {
+      const calc = rollupFor(nome, o.level);
+
+      if (kpis.demSComb == null) kpis.demSComb = calc.demSComb;
+      if (kpis.olSComb == null)  kpis.olSComb  = calc.olSComb;
+      if (kpis.olPriori == null) kpis.olPriori = calc.olPriori;
+      if (kpis.olLanc == null)   kpis.olLanc   = calc.olLanc;
+    }
+
+    rows.push({
+      nome,
+      kam,
+      level: o.level,
+      gr: o.gr || (r['NOME GR'] || ''),
+      gd: o.gd || (r['NOME GD'] || ''),
+      nac: o.nac || (r['NOME GN'] || ''),
+      kpis
+    });
+  });
+
+  // ✅ ALTERAÇÃO 1: Removida a ordenação alfabética simples.
+  // A ordenação hierárquica é feita em orderRowsHierarchically() abaixo.
+  return rows;
+}
+
+// ─── ALTERAÇÃO 1: Ordenação Hierárquica ──────────────────────────
+/**
+ * Organiza as linhas em ordem hierárquica: GN → GR → GD → REP
+ * Dentro de cada nível, a ordenação é alfabética pelo nome.
+ * Linhas sem hierarquia definida vão ao final.
+ */
+function orderRowsHierarchically(rows) {
+  // Indexar por nome para lookup rápido
+  const byName = {};
+  rows.forEach(r => { byName[r.nome] = r; });
+
+  // Separar por nível
+  const gns  = rows.filter(r => r.level === 'gn').sort((a,b) => a.nome.localeCompare(b.nome));
+  const grs  = rows.filter(r => r.level === 'gr').sort((a,b) => a.nome.localeCompare(b.nome));
+  const gds  = rows.filter(r => r.level === 'gd').sort((a,b) => a.nome.localeCompare(b.nome));
+  const reps = rows.filter(r => r.level === 'rep').sort((a,b) => a.nome.localeCompare(b.nome));
+
+  const result = [];
+  const placed = new Set();
+
+  function place(row) {
+    if (!placed.has(row.nome)) {
+      placed.add(row.nome);
+      result.push(row);
+    }
+  }
+
+  // Para cada GN, posiciona seus filhos em cascata
+  gns.forEach(gn => {
+    place(gn);
+
+    // GRs que reportam a este GN (campo nac == gn.nome)
+    const myGrs = grs.filter(r => r.nac === gn.nome);
+    myGrs.forEach(gr => {
+      place(gr);
+
+      // GDs que reportam a este GR (campo gr == gr.nome)
+      const myGds = gds.filter(d => d.gr === gr.nome);
+      myGds.forEach(gd => {
+        place(gd);
+
+        // REPs que reportam a este GD (campo gd == gd.nome)
+        const myReps = reps.filter(r => r.gd === gd.nome);
+        myReps.forEach(rep => place(rep));
+      });
+
+      // REPs que reportam diretamente ao GR (sem GD)
+      const directReps = reps.filter(r => r.gr === gr.nome && (!r.gd || !byName[r.gd]));
+      directReps.forEach(rep => place(rep));
+    });
+
+    // GDs que reportam diretamente ao GN (sem GR intermediário presente)
+    const directGds = gds.filter(d => d.nac === gn.nome && (!d.gr || !byName[d.gr]));
+    directGds.forEach(gd => {
+      place(gd);
+      const myReps = reps.filter(r => r.gd === gd.nome);
+      myReps.forEach(rep => place(rep));
+    });
+
+    // REPs que reportam diretamente ao GN
+    const directReps = reps.filter(r => r.nac === gn.nome && (!r.gr || !byName[r.gr]) && (!r.gd || !byName[r.gd]));
+    directReps.forEach(rep => place(rep));
+  });
+
+  // GRs órfãos (sem GN correspondente nos dados)
+  grs.forEach(gr => {
+    if (placed.has(gr.nome)) return;
+    place(gr);
+    const myGds = gds.filter(d => d.gr === gr.nome);
+    myGds.forEach(gd => {
+      place(gd);
+      reps.filter(r => r.gd === gd.nome).forEach(rep => place(rep));
+    });
+    reps.filter(r => r.gr === gr.nome && (!r.gd || !byName[r.gd])).forEach(rep => place(rep));
+  });
+
+  // GDs órfãos
+  gds.forEach(gd => {
+    if (placed.has(gd.nome)) return;
+    place(gd);
+    reps.filter(r => r.gd === gd.nome).forEach(rep => place(rep));
+  });
+
+  // REPs ainda não posicionados (sem hierarquia completa)
+  reps.forEach(rep => place(rep));
+
+  return result;
+}
+
+// ─── ALTERAÇÃO 3: Calcula contadores de KPIs por linha ──────────
+/**
+ * Retorna { kpis100Count, kpisValidCount } para uma linha,
+ * considerando apenas os kpiCols visíveis e aplicabilidade KAM/OTH.
+ */
+function calcKpiCounts(row, kpiCols) {
+  let kpis100Count = 0;
+  let kpisValidCount = 0;
+
+  kpiCols.forEach(c => {
+    const notApp = (c.onlyKam && !row.kam) || (c.onlyOth && row.kam);
+    if (notApp) return;
+
+    const val = row.kpis[c.key];
+    const p = normPct(val);
+    if (p === null) return; // nulo → não conta como válido
+
+    kpisValidCount++;
+    if (p >= 100) kpis100Count++;
+  });
+
+  return { kpis100Count, kpisValidCount };
+}
+
+// ─── Render ───────────────────────────────────────────
+function renderTable() {
+  const selDate  = document.getElementById('dateFilter').value;
+  const search   = document.getElementById('searchInput').value.toLowerCase();
+  const levelF   = document.getElementById('levelFilter').value;
+  const sortMode = document.getElementById('sortMode').value;
+  if (!selDate) return;
+
+  let rows = buildRows(selDate);
+
+  // Filters
+  rows = rows.filter(r => {
+    if (levelF && r.level !== levelF) return false;
+    if (search) {
+      const text = (r.nome + ' ' + (r.gr || '') + ' ' + (r.gd || '') + ' ' + (r.nac || '')).toLowerCase();
+      if (!text.includes(search)) return false;
+    }
+    return true;
+  });
+
+  document.getElementById('rowBadge').textContent = `${rows.length} colaboradores`;
+
+  if (rows.length === 0) {
+    document.getElementById('tableContainer').innerHTML = `
+      <div class="no-data">
+        <div class="ico">📭</div>
+        <h3>Nenhum dado encontrado</h3>
+        <p>Ajuste os filtros ou verifique o arquivo carregado.</p>
+      </div>`;
+    return;
+  }
+
+  const hasKam = rows.some(r => r.kam);
+  const hasOth = rows.some(r => !r.kam);
+
+  // KPI column definitions
+  const kpiCols = [
+    { key: 'fatBrasil', label: 'Faturamento<br>Brasil', always: true },
+    { key: 'demSComb', label: 'Demanda Sem<br>Combate', always: true },
+    { key: 'demPriori', label: 'Demanda<br>Prioritários', onlyKam: true },
+    { key: 'demLanc', label: 'Demanda<br>Lançamento', onlyKam: true },
+    { key: 'olSComb', label: 'OL Sem<br>Combate', onlyOth: true },
+    { key: 'olLanc', label: 'OL<br>Lançamento', onlyOth: true },
+    { key: 'olPriori', label: 'OL<br>Prioritário', onlyOth: true },
+  ].filter(c => {
+    if (c.onlyKam && !hasKam) return false;
+    if (c.onlyOth && !hasOth) return false;
+    return true;
+  });
+
+  const nc = kpiCols.length;
+
+  // ✅ ALTERAÇÃO 2: Aplicar ordenação conforme sortMode
+  if (sortMode === 'hierarchy') {
+    rows = orderRowsHierarchically(rows);
+  } else {
+    // Calcular contadores para cada linha antes de ordenar
+    rows.forEach(r => {
+      const counts = calcKpiCounts(r, kpiCols);
+      r._kpis100Count   = counts.kpis100Count;
+      r._kpisValidCount = counts.kpisValidCount;
+    });
+
+    rows.sort((a, b) => {
+      const dir = sortMode === 'desc' ? -1 : 1;
+      if (a._kpis100Count !== b._kpis100Count) return dir * (b._kpis100Count - a._kpis100Count);
+      if (a._kpisValidCount !== b._kpisValidCount) return dir * (b._kpisValidCount - a._kpisValidCount);
+      return a.nome.localeCompare(b.nome);
+    });
+  }
+
+  // ✅ ALTERAÇÃO 3: colspan atualizado de 4 para 6 (COLABORADOR agora tem 2 cols extras)
+  let html = `<table>
+  <thead>
+    <tr class="tr-top">
+      <th class="th-id-top" colspan="6">COLABORADOR</th>
+      <th class="th-obt-top sep-r-th" colspan="${nc}">PORCENTAGEM OBTIDA</th>
+      <th class="th-bon-top" colspan="${nc}">PORCENTAGEM BÔNUS</th>
+    </tr>
+    <tr class="tr-sub">
+      <th class="th-id-sub" style="min-width:210px;position:sticky;left:0;z-index:3;">NOME</th>
+      <th class="th-id-sub">NACI.</th>
+      <th class="th-id-sub">GR</th>
+      <th class="th-id-sub sep-r-th">GD</th>
+      <th class="th-kpi100" title="Quantidade de KPIs com porcentagem obtida ≥ 100%">KPIs ≥100%</th>
+      <th class="th-kpi100 sep-r-th" title="Quantidade de KPIs aplicáveis e não nulos">KPIs válidos</th>`;
+
+  kpiCols.forEach((c, i) => {
+    const last = i === nc - 1;
+    html += `<th class="th-obt-sub${last ? ' sep-r-th' : ''}">${c.label}</th>`;
+  });
+
+  kpiCols.forEach(c => {
+    html += `<th class="th-bon-sub">${c.label}</th>`;
+  });
+
+  html += `</tr>
+  </thead>
+  <tbody>`;
+
+  rows.forEach(r => {
+    const cls = `lv-${r.level}`;
+    const kamBadge = r.kam ? ' <span style="font-size:0.67rem;background:#1b4332;color:#d8f3dc;padding:1px 5px;border-radius:4px;vertical-align:middle;">KAM</span>' : '';
+
+    // ✅ ALTERAÇÃO 3: calcular os contadores para cada linha
+    const { kpis100Count, kpisValidCount } = calcKpiCounts(r, kpiCols);
+
+    // Classe de ênfase para kpis100Count
+    let kpi100Class = 'td-kpi100-low';
+    if (kpis100Count >= nc && nc > 0) kpi100Class = 'td-kpi100-high';
+    else if (kpis100Count > 0) kpi100Class = 'td-kpi100-mid';
+
+    html += `<tr class="${cls}">
+      <td class="td-nome">${r.nome}${kamBadge}</td>
+      <td class="td-badge">${r.nac}</td>
+      <td class="td-badge">${r.gr}</td>
+      <td class="td-badge sep-r">${r.gd}</td>
+      <td class="td-kpi100 ${kpi100Class}">${kpis100Count}</td>
+      <td class="td-kpi100 sep-r">${kpisValidCount}</td>`;
+
+    // OBTIDA
+    kpiCols.forEach((c, i) => {
+      const last = i === nc - 1;
+      const notApp = (c.onlyKam && !r.kam) || (c.onlyOth && r.kam);
+      const val = r.kpis[c.key];
+      html += `<td${last ? ' class="sep-r"' : ''}>${notApp ? '<span class="pct-na">–</span>' : fmtObtida(val)}</td>`;
+    });
+
+    // BÔNUS
+    kpiCols.forEach(c => {
+      const notApp = (c.onlyKam && !r.kam) || (c.onlyOth && r.kam);
+      const val = r.kpis[c.key];
+      html += `<td>${notApp ? '<span class="pct-na">–</span>' : fmtBonus(val)}</td>`;
+    });
+
+    html += `</tr>`;
+  });
+
+  html += `</tbody></table>`;
+  document.getElementById('tableContainer').innerHTML = html;
+}
+</script>
+</body>
+</html>
