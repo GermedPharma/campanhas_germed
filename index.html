@@ -85,7 +85,10 @@
             background: rgba(255,255,255,0.2); padding: 3px 10px;
             border-radius: 20px; font-size: 0.77rem; font-weight: 600;
         }
-        .table-scroll { overflow-x: auto; }
+        .table-scroll { 
+          overflow: auto;
+          max-height: 70vh;
+        }
 
         /* ===== TABLE ===== */
         table {
@@ -176,7 +179,82 @@
             body { padding: 10px; }
             .page-header { padding: 14px; }
             .page-header h1 { font-size: 1rem; }
-        }
+          }
+:root {
+  --thead-top-h: 29px;
+  --thead-sub-h: 34px;
+}
+
+/* Linha superior do cabeçalho */
+thead tr.tr-top {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+/* Linha inferior do cabeçalho */
+thead tr.tr-sub {
+  position: sticky;
+  top: var(--thead-top-h);
+  z-index: 15;
+}
+
+/* Primeira coluna fixa (nome) */
+thead tr.tr-top th.th-id-top,
+thead tr.tr-sub th.th-id-sub {
+  position: sticky;
+  left: 0;
+  z-index: 30;
+}
+
+/* Corpo da tabela sempre abaixo */
+tbody td {
+  position: relative;
+  z-index: 1;
+}
+
+
+.kpi-top-kpis {
+  padding: 6px 8px !important;
+}
+
+.kpi-top-pct {
+  font-size: 0.80rem;
+  font-weight: 800;
+  line-height: 1.05;
+  color: #d8f3dc;
+  letter-spacing: 0.2px;
+}
+
+.kpi-top-sums {
+  margin-top: 4px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.kpi-sum {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: 800;
+  font-size: 0.80rem;
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.18);
+  color: #ffffff;
+}
+
+/* (Opcional) pequeno subtítulo abaixo do % */
+.kpi-top-sub {
+  font-size: 0.62rem;
+  opacity: 0.85;
+  margin-top: 2px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
     </style>
 </head>
 <body>
@@ -820,6 +898,24 @@ function calcKpiCounts(row, kpiCols) {
   return { kpis100Count, kpisValidCount };
 }
 
+
+function updateStickyOffsets() {
+  const topRow = document.querySelector('#tableContainer thead tr.tr-top');
+  if (!topRow) return;
+
+  // altura real da linha superior (depende de zoom/fonte)
+  const h = Math.ceil(topRow.getBoundingClientRect().height);
+  document.documentElement.style.setProperty('--thead-top-h', `${h}px`);
+}
+
+// Atualiza offsets quando redimensiona (zoom, janela, etc)
+window.addEventListener('resize', () => {
+  // pequeno debounce simples
+  clearTimeout(window.__stickyT);
+  window.__stickyT = setTimeout(updateStickyOffsets, 60);
+});
+
+
 // ─── Render ───────────────────────────────────────────
 function renderTable() {
   const selDate  = document.getElementById('dateFilter').value;
@@ -891,14 +987,46 @@ function renderTable() {
     });
   }
 
+let totalKpis100 = 0;
+let totalKpisValid = 0;
+
+rows.forEach(r => {
+  const { kpis100Count, kpisValidCount } = calcKpiCounts(r, kpiCols);
+  totalKpis100 += kpis100Count;
+  totalKpisValid += kpisValidCount;
+});
+
+
+const atingPct = totalKpisValid > 0 ? (totalKpis100 / totalKpisValid) * 100 : null;
+
+const atingPctStr = (atingPct == null)
+  ? '—'
+  : atingPct.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
+
+
   // ✅ ALTERAÇÃO 3: colspan atualizado de 4 para 6 (COLABORADOR agora tem 2 cols extras)
   let html = `<table>
   <thead>
     <tr class="tr-top">
-      <th class="th-id-top" colspan="6">COLABORADOR</th>
-      <th class="th-obt-top sep-r-th" colspan="${nc}">PORCENTAGEM OBTIDA</th>
-      <th class="th-bon-top" colspan="${nc}">PORCENTAGEM BÔNUS</th>
-    </tr>
+  <th class="th-id-top" colspan="4">COLABORADOR</th>
+
+  <!-- KPI: % em cima + totais embaixo (2 colunas) -->
+  <th class="th-kpi100 sep-r-th kpi-top-kpis" colspan="2">
+    <div class="kpi-top-pct" title="Atingimento = (KPIs ≥100%) / (KPIs válidos)">
+      ${atingPctStr}
+    </div>
+    <div class="kpi-top-sub">atingimento</div>
+    <div class="kpi-top-sums">
+      <span class="kpi-sum" title="Total de KPIs ≥100%">${totalKpis100}</span>
+      <span class="kpi-sum" title="Total de KPIs válidos">${totalKpisValid}</span>
+    </div>
+  </th>
+
+  <th class="th-obt-top sep-r-th" colspan="${nc}">PORCENTAGEM OBTIDA</th>
+  <th class="th-bon-top" colspan="${nc}">PORCENTAGEM BÔNUS</th>
+</tr>
+
+
     <tr class="tr-sub">
       <th class="th-id-sub" style="min-width:210px;position:sticky;left:0;z-index:3;">NOME</th>
       <th class="th-id-sub">NACI.</th>
@@ -906,7 +1034,6 @@ function renderTable() {
       <th class="th-id-sub sep-r-th">GD</th>
       <th class="th-kpi100" title="Quantidade de KPIs com porcentagem obtida ≥ 100%">KPIs ≥100%</th>
       <th class="th-kpi100 sep-r-th" title="Quantidade de KPIs aplicáveis e não nulos">KPIs válidos</th>`;
-
   kpiCols.forEach((c, i) => {
     const last = i === nc - 1;
     html += `<th class="th-obt-sub${last ? ' sep-r-th' : ''}">${c.label}</th>`;
@@ -915,7 +1042,6 @@ function renderTable() {
   kpiCols.forEach(c => {
     html += `<th class="th-bon-sub">${c.label}</th>`;
   });
-
   html += `</tr>
   </thead>
   <tbody>`;
@@ -960,6 +1086,7 @@ function renderTable() {
 
   html += `</tbody></table>`;
   document.getElementById('tableContainer').innerHTML = html;
+  updateStickyOffsets();
 }
 </script>
 </body>
