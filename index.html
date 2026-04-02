@@ -85,8 +85,9 @@
             background: rgba(255,255,255,0.2); padding: 3px 10px;
             border-radius: 20px; font-size: 0.77rem; font-weight: 600;
         }
-        .table-scroll { 
-          overflow: auto;
+        .table-scroll {
+          overflow-x: auto;
+          overflow-y: auto;
           max-height: 70vh;
         }
 
@@ -132,11 +133,18 @@
             border-right: 1px solid #e8f5e9; text-align: center; white-space: nowrap;
         }
         .td-nome {
-            text-align: left; font-weight: 600; color: #1a1a2e;
-            background: #f9fffe; border-right: 2px solid #b7e4c7;
-            min-width: 210px; max-width: 270px;
-            overflow: hidden; text-overflow: ellipsis;
-            position: sticky; left: 0; z-index: 2; padding-left: 14px;
+           
+          text-align: left;
+          font-weight: 600;
+          color: #1a1a2e;
+          background: #f9fffe;
+          border-right: 2px solid #b7e4c7;
+          min-width: 210px;
+          max-width: 270px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          padding-left: 14px;
+
         }
         .td-setor { font-family: monospace; font-size: 0.71rem; color: #6c757d; background: #f9fffe; }
         .td-badge { font-weight: 600; font-size: 0.71rem; }
@@ -199,13 +207,7 @@ thead tr.tr-sub {
   z-index: 15;
 }
 
-/* Primeira coluna fixa (nome) */
-thead tr.tr-top th.th-id-top,
-thead tr.tr-sub th.th-id-sub {
-  position: sticky;
-  left: 0;
-  z-index: 30;
-}
+
 
 /* Corpo da tabela sempre abaixo */
 tbody td {
@@ -254,6 +256,26 @@ tbody td {
   letter-spacing: 0.3px;
   text-transform: uppercase;
 }
+
+
+/* KPIs fixos à direita */
+thead tr.tr-sub th.th-kpi100,
+tbody td.td-kpi100 {
+  position: sticky;
+  right: 0;
+  z-index: 6;
+  background: #f9fffe;
+}
+
+/* segundo KPI (KPIs válidos) */
+thead tr.tr-sub th.th-kpi100.sep-r-th,
+tbody td.td-kpi100.sep-r {
+  position: sticky;
+  right: 60px; /* largura da coluna anterior */
+  z-index: 6;
+  background: #f9fffe;
+}
+
 
     </style>
 </head>
@@ -1008,7 +1030,10 @@ const atingPctStr = (atingPct == null)
   let html = `<table>
   <thead>
     <tr class="tr-top">
-  <th class="th-id-top" colspan="4">COLABORADOR</th>
+<th class="th-id-top" colspan="4" style="min-width:600px">
+  COLABORADOR
+</th>
+
 
   <!-- KPI: % em cima + totais embaixo (2 colunas) -->
   <th class="th-kpi100 sep-r-th kpi-top-kpis" colspan="2">
