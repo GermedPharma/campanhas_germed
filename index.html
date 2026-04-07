@@ -127,13 +127,16 @@
 
         tbody tr { transition: background 0.1s; }
         tbody tr:hover td { background: #e8f5e9 !important; color: #1a1a2e !important; }
+        tbody tr:hover td.td-nome { background: #e8f5e9 !important; }
 
         td {
             padding: 7px 8px; border-bottom: 1px solid #e8f5e9;
             border-right: 1px solid #e8f5e9; text-align: center; white-space: nowrap;
         }
         .td-nome {
-           
+          position: sticky;
+          left: 0;
+          z-index: 10;
           text-align: left;
           font-weight: 600;
           color: #1a1a2e;
@@ -144,19 +147,19 @@
           overflow: hidden;
           text-overflow: ellipsis;
           padding-left: 14px;
-
         }
         .td-setor { font-family: monospace; font-size: 0.71rem; color: #6c757d; background: #f9fffe; }
         .td-badge { font-weight: 600; font-size: 0.71rem; }
 
         /* Level rows */
         tr.lv-nacional td, tr.lv-gn td { background: #e8f5e9; font-weight: 700; font-size: 0.8rem; color: #1b4332; }
-        tr.lv-nacional .td-nome, tr.lv-gn .td-nome { background: #c8e6c9; }
+        tr.lv-nacional .td-nome, tr.lv-gn .td-nome { background: #c8e6c9 !important; }
         tr.lv-gr td { background: #f1faf3; font-weight: 700; color: #2d6a4f; }
-        tr.lv-gr .td-nome { background: #dff0e5; }
+        tr.lv-gr .td-nome { background: #dff0e5 !important; }
         tr.lv-gd td { background: #f8fffa; font-weight: 600; color: #3d7a5a; }
-        tr.lv-gd .td-nome { background: #f0faef; }
+        tr.lv-gd .td-nome { background: #f0faef !important; }
         tr.lv-rep td { background: white; color: #1a1a2e; }
+        tr.lv-rep .td-nome { background: #f9fffe !important; }
 
         /* KPI colors */
         .pct-green { color: #1b7a3e; font-weight: 700; }
@@ -211,7 +214,6 @@ thead tr.tr-sub {
 
 /* Corpo da tabela sempre abaixo */
 tbody td {
-  position: relative;
   z-index: 1;
 }
 
@@ -263,7 +265,7 @@ thead tr.tr-sub th.th-kpi100,
 tbody td.td-kpi100 {
   position: sticky;
   right: 0;
-  z-index: 6;
+  z-index: 4;
   background: #f9fffe;
 }
 
@@ -271,8 +273,8 @@ tbody td.td-kpi100 {
 thead tr.tr-sub th.th-kpi100.sep-r-th,
 tbody td.td-kpi100.sep-r {
   position: sticky;
-  right: 60px; /* largura da coluna anterior */
-  z-index: 6;
+  right: 60px;
+  z-index: 4;
   background: #f9fffe;
 }
 
@@ -1053,7 +1055,7 @@ const atingPctStr = (atingPct == null)
 
 
     <tr class="tr-sub">
-      <th class="th-id-sub" style="min-width:210px;position:sticky;left:0;z-index:3;">NOME</th>
+      <th class="th-id-sub" style="min-width:210px;position:sticky;left:0;z-index:12;">NOME</th>
       <th class="th-id-sub">NACI.</th>
       <th class="th-id-sub">GR</th>
       <th class="th-id-sub sep-r-th">GD</th>
